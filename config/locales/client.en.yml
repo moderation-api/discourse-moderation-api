@@ -1,0 +1,13 @@
+en:
+  admin_js:
+    admin:
+      site_settings:
+        categories:
+          moderation_api: "Moderation Api"
+  js:
+    moderation_api:
+      placeholder: placeholder
+      configure_project:
+        title: "Configure Moderation Project"
+        button_label: "Edit Settings"
+

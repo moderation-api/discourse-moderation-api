@@ -1,0 +1,26 @@
+en:
+  site_settings:
+    moderation_api_enabled: "Enable the Moderation API plugin for filtering unwanted content."
+    moderation_api_add_to_queue: "Add flagged posts to the moderation queue."
+    moderation_api_key: "Moderation API key. Get an API key from your project settings: https://moderationapi.com/app"
+    moderation_api_flagging_behavior: "What to do with posts flagged by Moderation API."
+    moderation_api_block_message: "The message to show to the user when their post is flagged and can't be posted."
+    moderation_api_block_post: "Block flagged posts."
+    moderation_api_allow_post: "Allow flagged posts."
+    moderation_api_allow_and_warn: "Allow posts but warn users"
+    moderation_api_check_private_message: "Check and flag personal messages"
+    moderation_api_skip_groups: "Skip moderation for posts from these groups."
+    moderation_api_notify_on_post_queue: "Message the user when their post is hidden and queued for review."
+    confirmation_required: "Confirmation required: flagged content"
+
+  system_messages:
+    moderation_api_post_queued_for_review:
+      subject_template: "Moderation API has temporarily hidden your post"
+      text_body_template: |
+        Hello,
+
+        Our automated moderation filter, [Moderation API](https://moderationapi.com/), has temporarily hidden [your post](%{post_link}) in *%{topic_title}* for review.
+
+        A [staff member](%{base_url}/about) will review your post soon, and it should appear shortly.
+
+        We apologize for the inconvenience.

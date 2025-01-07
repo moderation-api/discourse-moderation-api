@@ -1,0 +1,35 @@
+moderation_api:
+  moderation_api_enabled:
+    type: boolean
+    default: false
+    client: true
+  moderation_api_flagging_behavior:
+    default: "Flag post"
+    type: enum
+    choices:
+      - Queue for review
+      - Flag post
+      - Block post
+      - Nothing
+
+  moderation_api_block_message:
+    default: "Your post has been blocked by our moderation system."
+  moderation_api_notify_on_post_queue:
+    default: true
+  moderation_api_check_private_message:
+    default: false
+    client: true
+  moderation_api_skip_groups:
+    default: []
+    type: group_list
+    allow_any: false
+    refresh: true
+
+  moderation_api_skip_categories:
+    type: category_list
+    default: []
+    allow_any: false
+    refresh: true
+
+  moderation_api_key:
+    default: ""
