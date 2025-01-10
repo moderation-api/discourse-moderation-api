@@ -59,18 +59,18 @@ module ::DiscourseModerationApi
 
         Rails.logger.debug("API Response: #{analysis.inspect}")
 
-        { approved: !analysis.flagged }
+        return { approved: !analysis.flagged }
       rescue ModerationApi::ApiError => e
         Rails.logger.error("Moderation API error: #{e.message}")
         Rails.logger.error("Response body: #{e.response_body}") if e.respond_to?(:response_body)
         Rails.logger.error("Full error: #{e.full_message}")
         Rails.logger.error(e.backtrace.join("\n"))
         # Return approved by default in case of API errors
-        { approved: true }
+        return { approved: true }
       rescue StandardError => e
         Rails.logger.error("Unexpected error in moderation service: #{e.message}")
         Rails.logger.error(e.backtrace.join("\n"))
-        { approved: true }
+        return { approved: true }
       end
     end
   end

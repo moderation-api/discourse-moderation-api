@@ -59,29 +59,29 @@ module ::DiscourseModerationApi
   end
 
   def self.should_moderate?(post)
-    Rails.logger.info("ModerationAPI: Checking if post #{post&.id} should be moderated")
+    Rails.logger.debug("ModerationAPI: Checking if post #{post&.id} should be moderated")
 
     if post.blank? || !SiteSetting.moderation_api_enabled
-      Rails.logger.info("ModerationAPI: Skipping - post is blank or moderation not enabled")
-      false
+      Rails.logger.debug("ModerationAPI: Skipping - post is blank or moderation not enabled")
+      return false
     end
 
     # Skip if post already has errors
     if post.errors.present?
-      Rails.logger.info("ModerationAPI: Skipping - post has errors: #{post.errors.full_messages}")
-      false
+      Rails.logger.debug("ModerationAPI: Skipping - post has errors: #{post.errors.full_messages}")
+      return false
     end
 
     # system message bot message or no user
     if (post&.user_id).to_i <= 0
-      Rails.logger.info("ModerationAPI: Skipping - system message or no user")
-      false
+      Rails.logger.debug("ModerationAPI: Skipping - system message or no user")
+      return false
     end
-
+    
     # don't check trashed topics
     if !post.topic || post.topic.trashed?
-      Rails.logger.info("ModerationAPI: Skipping - topic is trashed or missing")
-      false
+      Rails.logger.debug("ModerationAPI: Skipping - topic is trashed or missing")
+      return false
     end
 
     # Skip if user is in excluded groups
@@ -92,24 +92,24 @@ module ::DiscourseModerationApi
            &.pluck(:id)
            &.intersection(SiteSetting.moderation_api_skip_groups.split("|").map(&:to_i))
            &.any?
-      Rails.logger.info("ModerationAPI: Skipping - user is in excluded groups")
-      false
+      Rails.logger.debug("ModerationAPI: Skipping - user is in excluded groups")
+      return false
     end
 
     # Skip private messages unless enabled
     if (post.topic&.private_message? || post.archetype == "private_message") &&
          !SiteSetting.moderation_api_check_private_message
-      Rails.logger.info("ModerationAPI: Skipping - private message and checking disabled")
-      false
+      Rails.logger.debug("ModerationAPI: Skipping - private message and checking disabled")
+      return false
     end
 
     if Reviewable.exists?(target: post)
-      Rails.logger.info("ModerationAPI: Skipping - reviewable already exists for post")
-      false
+      Rails.logger.debug("ModerationAPI: Skipping - reviewable already exists for post")
+      return false
     end
 
-    Rails.logger.info("ModerationAPI: Post #{post.id} will be moderated")
-    true
+    Rails.logger.debug("ModerationAPI: Post #{post.id} will be moderated")
+    return true
   end
 
   def self.handle_moderation_result(post, analysis)
@@ -118,10 +118,10 @@ module ::DiscourseModerationApi
     case SiteSetting.moderation_api_flagging_behavior
     when "Block post"
       post.errors.add(:base, SiteSetting.moderation_api_block_message)
-      false
+      return false
     when "Queue for review"
       queue_post_for_review(post)
-      false
+      return false
     when "Flag post"
       PostActionCreator.create(
         system_user,
@@ -129,9 +129,9 @@ module ::DiscourseModerationApi
         :inappropriate,
         message: "Flagged by Moderation API",
       )
-      false
+      return false
     when "Nothing"
-      nil
+      return nil
     end
   end
 
