@@ -8,7 +8,8 @@ The Moderation API Plugin lets you automate moderation actions on your Discourse
 
 If you're not sure how to install a plugin in Discourse, please follow the [plugin installation guide](https://meta.discourse.org/t/install-a-plugin/19157) or contact your Discourse hosting provider.
 
-##  Subscriptions
+## Subscriptions
+
 You can install the plugin right away and use our free tier or 30 day trial. If you need more, we offer [several subscription options](https://moderationapi.com/pricing).
 
 ## Documentation
@@ -20,5 +21,3 @@ You can install the plugin right away and use our free tier or 30 day trial. If 
 - [Get support](mailto:support@moderationapi.com)
 - [Request a feature](https://moderationapi.com/sales)
 - [Report an issue](mailto:support@moderationapi.com)
-
-
