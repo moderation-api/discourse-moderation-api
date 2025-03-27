@@ -48,14 +48,42 @@ module ::DiscourseModerationApi
           "Author ID: #{author_id}, Context ID: #{context_id}, Content ID: #{content_id}",
         )
 
-        params = { value: content, doNotStore: false, metadata: { link: content_url } }
+        params = { value: {
+          type: "object",
+          data: {
+            post: {
+              type: "text",
+              value: content,
+            },
+            },
+          },
+          doNotStore: false,
+          metadata: { link: content_url },
+        }
+
+        # Add image URLs if present
+        if content.present?
+          # Extract image URLs from post content using Discourse's built-in cooked parsing
+          doc = Nokogiri::HTML5.fragment(PrettyText.cook(content))
+          image_urls = doc.css('img').map { |img| img['src'] }.compact
+          
+          image_urls.each_with_index do |url, index|
+            full_url = url.start_with?('http') ? url : "#{Discourse.base_url}#{url}"
+            params[:value][:data]["image-#{index + 1}"] = {
+              type: "image", 
+              value: full_url
+            }
+          end
+        end
 
         # Only add optional fields if they have values
         params[:authorId] = author_id if author_id.present?
         params[:contextId] = context_id if context_id.present?
         params[:contentId] = content_id if content_id.present?
 
-        analysis = api.moderation_text(params)
+        Rails.logger.debug("API Params: #{params.inspect}")
+
+        analysis = api.moderation_object(params)
 
         Rails.logger.debug("API Response: #{analysis.inspect}")
 
