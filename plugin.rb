@@ -199,11 +199,19 @@ after_initialize do
       DiscourseModerationApi.handle_moderation_result(post, analysis)
     end
   end
+
+   # Add webhook handler
+  Discourse::Application.routes.append do
+    post "/moderation-api/webhook" => "discourse_moderation_api/webhooks#receive"
+  end
+
+  # add_admin_route "moderation_api.configure_project.title", "moderation-api-config"
+
+  # Discourse::Application.routes.append do
+  #   get "/admin/plugins/moderation-api-config" => "admin/plugins#index",
+  #       :constraints => StaffConstraint.new
+  # end
+  
 end
 
-add_admin_route "moderation_api.configure_project.title", "moderation-api-config"
 
-Discourse::Application.routes.append do
-  get "/admin/plugins/moderation-api-config" => "admin/plugins#index",
-      :constraints => StaffConstraint.new
-end
