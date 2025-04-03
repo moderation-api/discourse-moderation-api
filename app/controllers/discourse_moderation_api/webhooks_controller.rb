@@ -8,8 +8,8 @@ module DiscourseModerationApi
 
             # Get the system user for moderation actions
             @system_user = DiscourseModerationApi.system_user
-            unless @system_user
-                Rails.logger.error("Moderation API bot user not found")
+            unless @system_user && @system_user.id > 0
+                Rails.logger.error("Moderation API bot user not found or has invalid ID: #{@system_user&.id}")
                 render json: { error: "System configuration error - bot user not available" }, status: 500
                 return
             end
@@ -35,15 +35,16 @@ module DiscourseModerationApi
                 return
             end
 
-            # First try to find the post by item.id
-            post = Post.find_by(id: content_id)
+            # Find the content based on content_type
+            post = nil
+            reviewables = []
             
-            # If no post found, try to find the topic by item.id
-            topic = post&.topic || Topic.find_by(id: content_id)
+            post = Post.unscoped.find_by(id: content_id)
+            reviewables = Reviewable.where(target: post) if post
 
-            unless post || topic
-                Rails.logger.error("Could not find post or topic with id: #{content_id}")
-                render json: { error: "Content not found" }, status: 404
+            unless post || reviewables.any?
+                Rails.logger.error("Could not find post, topic, or reviewable with id: #{content_id}")
+                render json: { error: "Content not found for id: #{content_id}" }, status: 404
                 return
             end
 
@@ -51,8 +52,10 @@ module DiscourseModerationApi
             when "discourse:delete"
                 if post
                     PostDestroyer.new(@system_user, post).destroy
-                else
-                    TopicDestroyer.new(@system_user, topic).destroy
+                end
+                # Process reviewables in all cases
+                reviewables.each do |reviewable|
+                    reviewable.destroy
                 end
             when "discourse:hide"
                 if post
@@ -62,16 +65,29 @@ module DiscourseModerationApi
                         Post.hidden_reasons[:moderator_action],
                         custom_message: action["value"]
                     )
-                else
-                    topic.update!(visible: false)
+                    # if post is the first post in the topic, show the topic
+                    if post.post_number == 1
+                        # get the topic
+                        post.topic.update!(visible: false)
+                    end
+                end
+                # Process reviewables in all cases
+                reviewables.each do |reviewable|
+                    reviewable.destroy
                 end
             when "discourse:show"
                 if post
-                    # Remove any existing moderator actions
-                    PostAction.where(post: post, post_action_type_id: PostActionType.types[:moderator_action]).destroy_all
+                    Rails.logger.debug("LOG:ModerationAPI: showing post: #{post.id}")
                     post.update!(hidden: false)
-                else
-                    topic.update!(visible: true)
+                    # if post is the first post in the topic, show the topic
+                    if post.post_number == 1
+                        # get the topic
+                        post.topic.update!(visible: true)
+                    end
+                end
+                # Process reviewables in all cases
+                reviewables.each do |reviewable|
+                    reviewable.destroy
                 end
             else
                 Rails.logger.warn("Unknown action key: #{action["key"]}")
@@ -82,7 +98,7 @@ module DiscourseModerationApi
             render json: { 
                 status: "success",
                 action: action["key"],
-                content_type: post ? "post" : "topic",
+                content_type: content_type,
                 content_id: content_id,
                 topic_id: context_id
             }, status: 200

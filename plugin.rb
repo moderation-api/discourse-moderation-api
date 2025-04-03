@@ -24,7 +24,16 @@ module ::DiscourseModerationApi
   PLUGIN_NAME = "discourse-moderation-api"
 
   def self.system_user
-    @system_user ||= User.find_by(username: "moderation_api_bot") || create_system_user
+    @system_user ||= begin
+      user = User.find_by(username: "moderation_api_bot")
+      if user && user.id > 0
+        Rails.logger.info("Found existing Moderation API bot user with ID: #{user.id}")
+        user
+      else
+        Rails.logger.info("Creating new Moderation API bot user")
+        create_system_user
+      end
+    end
   end
 
   def self.create_system_user
@@ -38,6 +47,7 @@ module ::DiscourseModerationApi
           active: true,
           trust_level: TrustLevel[4],
           admin: false,
+          moderator: true,
           approved: true,
           created_at: Time.zone.now,
           last_seen_at: Time.zone.now,
@@ -56,31 +66,40 @@ module ::DiscourseModerationApi
             avatar = UserAvatar.import_url_for_user(avatar_url, created_user)
           end
         end
+    
+    # Verify the user was created successfully with a valid ID
+    if user.id <= 0
+      Rails.logger.error("Failed to create Moderation API bot user with valid ID: #{user.id}")
+      raise "Failed to create Moderation API bot user with valid ID"
+    end
+    
+    Rails.logger.info("Successfully created Moderation API bot user with ID: #{user.id}")
+    user
   end
 
   def self.should_moderate?(post)
-    Rails.logger.debug("ModerationAPI: Checking if post #{post&.id} should be moderated")
+    Rails.logger.debug("LOG:ModerationAPI: Checking if post #{post&.id} should be moderated. #{post.inspect}")
 
     if post.blank? || !SiteSetting.moderation_api_enabled
-      Rails.logger.debug("ModerationAPI: Skipping - post is blank or moderation not enabled")
+      Rails.logger.debug("LOG:ModerationAPI: Skipping - post is blank or moderation not enabled")
       return false
     end
 
     # Skip if post already has errors
     if post.errors.present?
-      Rails.logger.debug("ModerationAPI: Skipping - post has errors: #{post.errors.full_messages}")
+      Rails.logger.debug("LOG:ModerationAPI: Skipping - post has errors: #{post.errors.full_messages}")
       return false
     end
 
     # system message bot message or no user
     if (post&.user_id).to_i <= 0
-      Rails.logger.debug("ModerationAPI: Skipping - system message or no user")
+      Rails.logger.debug("LOG:ModerationAPI: Skipping - system message or no user")
       return false
     end
     
     # don't check trashed topics
     if !post.topic || post.topic.trashed?
-      Rails.logger.debug("ModerationAPI: Skipping - topic is trashed or missing")
+      Rails.logger.debug("LOG:ModerationAPI: Skipping - topic is trashed or missing")
       return false
     end
 
@@ -92,23 +111,23 @@ module ::DiscourseModerationApi
            &.pluck(:id)
            &.intersection(SiteSetting.moderation_api_skip_groups.split("|").map(&:to_i))
            &.any?
-      Rails.logger.debug("ModerationAPI: Skipping - user is in excluded groups")
+      Rails.logger.debug("LOG:ModerationAPI: Skipping - user is in excluded groups")
       return false
     end
 
     # Skip private messages unless enabled
     if (post.topic&.private_message? || post.archetype == "private_message") &&
          !SiteSetting.moderation_api_check_private_message
-      Rails.logger.debug("ModerationAPI: Skipping - private message and checking disabled")
+      Rails.logger.debug("LOG:ModerationAPI: Skipping - private message and checking disabled")
       return false
     end
 
     if Reviewable.exists?(target: post)
-      Rails.logger.debug("ModerationAPI: Skipping - reviewable already exists for post")
+      Rails.logger.debug("LOG:ModerationAPI: Skipping - reviewable already exists for post")
       return false
     end
 
-    Rails.logger.debug("ModerationAPI: Post #{post.id} will be moderated")
+    Rails.logger.debug("LOG:ModerationAPI: Post #{post.id} will be moderated")
     return true
   end
 
@@ -136,13 +155,14 @@ module ::DiscourseModerationApi
   end
 
   def self.queue_post_for_review(post)
-    # If it's the first post in a topic, hide it instead of destroying
-    if post.is_first_post?
-      PostDestroyer.new(system_user, post).destroy
-    else
-      # If it's a reply, destroy the post so no one sees it until a moderator checks
-      PostDestroyer.new(system_user, post).destroy
+    # Hide the post so no one sees it until a moderator checks
+    post.update!(hidden: true)
+    # if first post in topic, hide the topic
+    if post.post_number == 1
+      post.topic.update!(visible: false)
     end
+    # Actually delete the post because it comes in again when the reviewable is approved
+    # PostDestroyer.new(system_user, post).destroy
 
     if SiteSetting.moderation_api_notify_on_post_queue
       SystemMessage.new(post.user).create(
@@ -176,8 +196,7 @@ after_initialize do
 
   # Check before creation only if we're in blocking mode
   on(:before_create_post) do |post, params|
-    if DiscourseModerationApi.should_moderate?(post) &&
-         pre_create_behaviours.include?(SiteSetting.moderation_api_flagging_behavior)
+    if pre_create_behaviours.include?(SiteSetting.moderation_api_flagging_behavior) && DiscourseModerationApi.should_moderate?(post)
       analysis = DiscourseModerationApi::ModerationService.analyze_post(post)
       DiscourseModerationApi.handle_moderation_result(post, analysis)
     end
@@ -185,8 +204,7 @@ after_initialize do
 
   # For non-blocking moderation, analyze after the post is created
   on(:post_created) do |post|
-    if DiscourseModerationApi.should_moderate?(post) &&
-         post_create_behaviours.include?(SiteSetting.moderation_api_flagging_behavior)
+    if post_create_behaviours.include?(SiteSetting.moderation_api_flagging_behavior) && DiscourseModerationApi.should_moderate?(post)
       analysis = DiscourseModerationApi::ModerationService.analyze_post(post)
       DiscourseModerationApi.handle_moderation_result(post, analysis)
     end

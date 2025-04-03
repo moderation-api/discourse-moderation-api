@@ -5,32 +5,24 @@ module ::DiscourseModerationApi
     def self.analyze_post(post)
       Rails.logger.debug("Analyzing post content")
 
+      topic_title = nil
+      if post.post_number == 1
+        topic_title = post.topic.title
+      end
+
       analyze_content(
         content: post.raw,
         author_id: post.user_id.to_s,
         context_id: post.topic_id.to_s,
         content_id: post.id&.to_s || "pending_#{Time.now.to_i}",
         content_url: "#{Discourse.base_url}/t/#{post.topic.slug}/#{post.topic_id}/#{post.post_number}",
-      )
-    end
-
-    def self.analyze_topic(topic)
-      Rails.logger.debug("Analyzing topic content")
-
-      content = [topic.title, topic.first_post&.raw].compact.join("\n")
-
-      analyze_content(
-        content: content,
-        author_id: topic.user_id.to_s,
-        context_id: topic.id.to_s,
-        content_id: topic.first_post&.id&.to_s || "pending_topic_#{Time.now.to_i}",
-        content_url: "#{Discourse.base_url}/t/#{topic.slug}/#{topic.id}",
+        topic_title: topic_title,
       )
     end
 
     private
 
-    def self.analyze_content(content:, author_id:, context_id:, content_id:, content_url:)
+    def self.analyze_content(content:, author_id:, context_id:, content_id:, content_url:, topic_title:)
       Rails.logger.info("Analyzing content with Moderation API")
 
       begin
@@ -50,15 +42,23 @@ module ::DiscourseModerationApi
 
         params = { value: {
           type: "object",
-          data: {
-            post: {
-              type: "text",
-              value: content,
-            },
-            },
+          data: { },
           },
           doNotStore: false,
           metadata: { link: content_url },
+        }
+
+        if topic_title.present?
+          params[:value][:data]["title"] = {
+            type: "text",
+            value: topic_title,
+          }
+        end
+
+        # add this after to have the order nice
+        params[:value][:data]["post"] = {
+          type: "text",
+          value: content,
         }
 
         # Add image URLs if present
