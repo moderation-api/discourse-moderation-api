@@ -10,7 +10,7 @@ module ::DiscourseModerationApi
         author_id: post.user_id.to_s,
         context_id: post.topic_id.to_s,
         content_id: post.id&.to_s || "pending_#{Time.now.to_i}",
-        content_url: "#{Discourse.base_url}/t/#{post.topic_id}/#{post.id}",
+        content_url: "#{Discourse.base_url}/t/#{post.topic.slug}/#{post.topic_id}/#{post.post_number}",
       )
     end
 
@@ -24,7 +24,7 @@ module ::DiscourseModerationApi
         author_id: topic.user_id.to_s,
         context_id: topic.id.to_s,
         content_id: topic.first_post&.id&.to_s || "pending_topic_#{Time.now.to_i}",
-        content_url: "#{Discourse.base_url}/t/#{topic.id}",
+        content_url: "#{Discourse.base_url}/t/#{topic.slug}/#{topic.id}",
       )
     end
 
