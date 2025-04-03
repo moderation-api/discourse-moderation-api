@@ -33,3 +33,7 @@ moderation_api:
 
   moderation_api_key:
     default: ""
+  
+  moderation_api_webhook_signing_secret:
+    default: ''
+    client: false
