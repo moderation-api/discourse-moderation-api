@@ -11,6 +11,7 @@ en:
     moderation_api_allow_and_warn: "Allow posts but warn users"
     moderation_api_check_private_message: "Check and flag personal messages"
     moderation_api_skip_groups: "Skip moderation for posts from these groups."
+    moderation_api_skip_categories: "Skip moderation for posts in these categories."
     moderation_api_notify_on_post_queue: "Message the user when their post is hidden and queued for review."
     confirmation_required: "Confirmation required: flagged content"
 

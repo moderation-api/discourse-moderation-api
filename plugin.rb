@@ -18,6 +18,13 @@ gem "moderation_api", "1.2.2", { require: false }
 
 enabled_site_setting :moderation_api_enabled
 
+add_admin_route "moderation_api.title", "moderation-api", use_new_show_route: true
+
+# Discourse::Application.routes.append do
+#   get "/admin/plugins/discourse-moderation-api" => "admin/plugins#index",
+#       :constraints => StaffConstraint.new
+# end
+
 require "moderation_api"
 
 module ::DiscourseModerationApi
@@ -223,13 +230,7 @@ after_initialize do
     post "/moderation-api/webhook" => "discourse_moderation_api/webhooks#receive"
   end
 
-  # add_admin_route "moderation_api.configure_project.title", "moderation-api-config"
 
-  # Discourse::Application.routes.append do
-  #   get "/admin/plugins/moderation-api-config" => "admin/plugins#index",
-  #       :constraints => StaffConstraint.new
-  # end
-  
 end
 
 
