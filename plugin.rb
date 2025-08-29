@@ -3,7 +3,7 @@
 # name: discourse-moderation-api
 # about: Automatically moderates posts using Moderation API
 # meta_topic_id: TODO
-# version: 0.0.1
+# version: 0.0.2
 # authors: Moderation API
 # url: https://moderationapi.com
 # required_version: 2.7.0
