@@ -8,6 +8,7 @@
 # url: https://moderationapi.com
 # required_version: 2.7.0
 
+gem "marcel", { require: false }
 gem "moderation_api", "1.2.2", { require: false }
 
 enabled_site_setting :moderation_api_enabled
