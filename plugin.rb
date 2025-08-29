@@ -8,12 +8,6 @@
 # url: https://moderationapi.com
 # required_version: 2.7.0
 
-gem "faraday", "2.12.2", { require: false }
-gem "faraday-net_http", "3.4.0", { require: false }
-gem "multipart-post", "2.4.1", { require: false }
-gem "faraday-multipart", "1.1.0", { require: false }
-gem "marcel", "1.0.4", { require: false }
-gem "net-http", "0.6.0", { require: false }
 gem "moderation_api", "1.2.2", { require: false }
 
 enabled_site_setting :moderation_api_enabled
