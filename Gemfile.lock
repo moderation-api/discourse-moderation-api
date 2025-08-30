@@ -98,6 +98,8 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  faraday-multipart
+  marcel
   moderation_api
   rubocop-discourse
   syntax_tree

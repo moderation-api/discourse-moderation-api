@@ -8,17 +8,16 @@
 # url: https://moderationapi.com
 # required_version: 2.7.0
 
-gem "marcel", { require: false }
+# Declare dependencies required by moderation_api gem
+# These are needed because Discourse installs gems with --ignore-dependencies
+gem "multipart-post", "2.4.1", { require: false }
+gem "faraday-multipart", "1.1.1", { require: false }
+gem "marcel", "1.0.4", { require: false }
 gem "moderation_api", "1.2.2", { require: false }
 
 enabled_site_setting :moderation_api_enabled
 
 add_admin_route "moderation_api.title", "moderation-api", use_new_show_route: true
-
-# Discourse::Application.routes.append do
-#   get "/admin/plugins/discourse-moderation-api" => "admin/plugins#index",
-#       :constraints => StaffConstraint.new
-# end
 
 require "moderation_api"
 
